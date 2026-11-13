@@ -1,0 +1,210 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net: Default-deny all unmatched paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (request.auth.token.email == 'smahakaal798@gmail.com' &&
+         request.auth.token.email_verified == true)
+      );
+    }
+
+    function isValidUserProfile(data) {
+      return data.userId is string &&
+             data.userId == request.auth.uid &&
+             data.displayName is string &&
+             data.displayName.size() >= 1 &&
+             data.displayName.size() <= 80 &&
+             (!('email' in data) || data.email == null || (data.email is string && data.email.size() <= 160)) &&
+             (!('photoUrl' in data) || data.photoUrl == null || (data.photoUrl is string && data.photoUrl.size() <= 500)) &&
+             data.coins is int && data.coins >= 0 &&
+             data.freeSpinsLeft is int && data.freeSpinsLeft >= 0 && data.freeSpinsLeft <= 500 &&
+             data.lastSpinResetEpochDay is int && data.lastSpinResetEpochDay >= 0 &&
+             data.nextAdAvailableEpochMs is int && data.nextAdAvailableEpochMs >= 0 &&
+             data.energy is int && data.energy >= 0 && data.energy <= 100 &&
+             data.lastEnergyUpdateMs is int && data.lastEnergyUpdateMs >= 0 &&
+             data.streakDay is int && data.streakDay >= 0 && data.streakDay <= 7 &&
+             data.lastCheckinEpochDay is int && data.lastCheckinEpochDay >= 0 &&
+             data.totalTaps is int && data.totalTaps >= 0 &&
+             data.totalSpins is int && data.totalSpins >= 0 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidWalletTransaction(data) {
+      return data.userId is string &&
+             data.userId == request.auth.uid &&
+             data.referenceCode is string &&
+             data.referenceCode.size() >= 3 &&
+             data.referenceCode.size() <= 32 &&
+             data.methodName is string &&
+             data.methodName.size() >= 2 &&
+             data.methodName.size() <= 32 &&
+             data.accountIdentifier is string &&
+             data.accountIdentifier.size() >= 1 &&
+             data.accountIdentifier.size() <= 160 &&
+             data.coinsSpent is int && data.coinsSpent > 0 &&
+             data.inrEquivalent is number && data.inrEquivalent >= 0 &&
+             data.usdEquivalent is number && data.usdEquivalent >= 0 &&
+             data.status in ['Submitted', 'Credited'] &&
+             data.txType in ['WITHDRAWAL', 'DEPOSIT'] &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidAdminCommission(data) {
+      return data.playerUid is string &&
+             data.playerUid == request.auth.uid &&
+             data.playerName is string &&
+             data.playerName.size() >= 1 &&
+             data.playerName.size() <= 80 &&
+             data.sourceGame is string &&
+             data.sourceGame.size() >= 1 &&
+             data.sourceGame.size() <= 40 &&
+             data.grossWinCoins is int &&
+             data.grossWinCoins > 0 &&
+             data.grossWinCoins <= 10000000 &&
+             data.commissionCoins is int &&
+             data.commissionCoins > 0 &&
+             data.commissionCoins <= data.grossWinCoins &&
+             data.netPlayerCoins is int &&
+             data.netPlayerCoins >= 0 &&
+             data.inrValue is number &&
+             data.inrValue >= 0 &&
+             data.createdAt is timestamp &&
+             data.createdAt <= request.time;
+    }
+
+    function isValidAdminTreasury(data) {
+      return data.adminEmail is string &&
+             data.adminEmail.size() >= 3 &&
+             data.adminEmail.size() <= 160 &&
+             data.claimedCoins is int &&
+             data.claimedCoins >= 0 &&
+             data.updatedAt is timestamp &&
+             data.updatedAt <= request.time;
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if isOwner(userId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'displayName', 'coins', 'freeSpinsLeft',
+                         'lastSpinResetEpochDay', 'nextAdAvailableEpochMs',
+                         'energy', 'lastEnergyUpdateMs', 'streakDay',
+                         'lastCheckinEpochDay', 'totalTaps', 'totalSpins',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'displayName', 'email', 'photoUrl', 'coins',
+                         'freeSpinsLeft', 'lastSpinResetEpochDay', 'nextAdAvailableEpochMs',
+                         'energy', 'lastEnergyUpdateMs', 'streakDay',
+                         'lastCheckinEpochDay', 'totalTaps', 'totalSpins',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidUserProfile(incoming());
+
+      allow update: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'displayName', 'email', 'photoUrl', 'coins',
+                         'freeSpinsLeft', 'lastSpinResetEpochDay', 'nextAdAvailableEpochMs',
+                         'energy', 'lastEnergyUpdateMs', 'streakDay',
+                         'lastCheckinEpochDay', 'totalTaps', 'totalSpins', 'updatedAt'
+                       ]);
+
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      match /transactions/{transactionId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(transactionId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(userId) &&
+                         isValidId(transactionId) &&
+                         incoming().keys().hasAll([
+                           'userId', 'referenceCode', 'methodName', 'accountIdentifier',
+                           'coinsSpent', 'inrEquivalent', 'usdEquivalent',
+                           'status', 'txType', 'createdAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'referenceCode', 'methodName', 'accountIdentifier',
+                           'coinsSpent', 'inrEquivalent', 'usdEquivalent',
+                           'status', 'txType', 'createdAt'
+                         ]) &&
+                         isValidWalletTransaction(incoming()) &&
+                         exists(/databases/$(database)/documents/users/$(userId));
+
+        allow update, delete: if false;
+      }
+    }
+
+    match /admin_commissions/{commissionId} {
+      allow get: if isAdmin() && isValidId(commissionId);
+      allow list: if isAdmin();
+
+      allow create: if isSignedIn() &&
+                       isValidId(commissionId) &&
+                       incoming().keys().hasAll([
+                         'playerUid', 'playerName', 'sourceGame', 'grossWinCoins',
+                         'commissionCoins', 'netPlayerCoins', 'inrValue', 'createdAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'playerUid', 'playerName', 'sourceGame', 'grossWinCoins',
+                         'commissionCoins', 'netPlayerCoins', 'inrValue', 'createdAt'
+                       ]) &&
+                       isValidAdminCommission(incoming());
+
+      allow update, delete: if false;
+    }
+
+    match /admin_treasury/{docId} {
+      allow get: if isAdmin() && isValidId(docId);
+      allow list: if isAdmin();
+
+      allow create: if isAdmin() &&
+                       isValidId(docId) &&
+                       incoming().keys().hasAll(['adminEmail', 'claimedCoins', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['adminEmail', 'claimedCoins', 'updatedAt']) &&
+                       isValidAdminTreasury(incoming());
+
+      allow update: if isAdmin() &&
+                       isValidId(docId) &&
+                       isValidAdminTreasury(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['adminEmail', 'claimedCoins', 'updatedAt']);
+
+      allow delete: if false;
+    }
+  }
+}

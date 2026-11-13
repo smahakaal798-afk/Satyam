@@ -1,0 +1,6 @@
+{
+  "name": "SpinMint",
+  "description": "Interactive Spin & Win, Tap-to-Earn, Daily Streak, and Scratch Card rewards game with live wallet, sound effects, confetti celebrations, and simulated payout tracker.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

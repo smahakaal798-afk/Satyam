@@ -1,0 +1,248 @@
+{
+  "entities": {
+    "UserWalletProfile": {
+      "title": "UserWalletProfile",
+      "description": "Authenticated user's SpinMint wallet balance, spin quota, energy, daily streak, and profile metadata.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the wallet owner."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Player display name."
+        },
+        "email": {
+          "type": "string",
+          "description": "Authenticated user email (strictly owner-only)."
+        },
+        "photoUrl": {
+          "type": "string",
+          "description": "Optional Google profile photo URL."
+        },
+        "coins": {
+          "type": "integer",
+          "description": "Current virtual Mint Coins balance."
+        },
+        "freeSpinsLeft": {
+          "type": "integer",
+          "description": "Remaining daily wheel spins."
+        },
+        "lastSpinResetEpochDay": {
+          "type": "integer",
+          "description": "UTC epoch day of the last spin quota reset."
+        },
+        "nextAdAvailableEpochMs": {
+          "type": "integer",
+          "description": "Epoch milliseconds when the next bonus spin ad unlocks."
+        },
+        "energy": {
+          "type": "integer",
+          "description": "Current Tap-to-Earn energy (0-100)."
+        },
+        "lastEnergyUpdateMs": {
+          "type": "integer",
+          "description": "Timestamp in epoch milliseconds of the last energy update."
+        },
+        "streakDay": {
+          "type": "integer",
+          "description": "Current daily check-in streak progress (0-7)."
+        },
+        "lastCheckinEpochDay": {
+          "type": "integer",
+          "description": "UTC epoch day of the last claimed daily reward."
+        },
+        "totalTaps": {
+          "type": "integer",
+          "description": "Cumulative coin taps performed."
+        },
+        "totalSpins": {
+          "type": "integer",
+          "description": "Cumulative wheel spins completed."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp (FieldValue.serverTimestamp()) when profile was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp (FieldValue.serverTimestamp()) of latest sync."
+        }
+      },
+      "required": [
+        "userId",
+        "displayName",
+        "coins",
+        "freeSpinsLeft",
+        "lastSpinResetEpochDay",
+        "nextAdAvailableEpochMs",
+        "energy",
+        "lastEnergyUpdateMs",
+        "streakDay",
+        "lastCheckinEpochDay",
+        "totalTaps",
+        "totalSpins",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "WalletTransactionRecord": {
+      "title": "WalletTransactionRecord",
+      "description": "Immutable ledger entry for SpinMint coin deposits and reward withdrawals.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the transaction owner."
+        },
+        "referenceCode": {
+          "type": "string",
+          "description": "Human-readable receipt reference code."
+        },
+        "methodName": {
+          "type": "string",
+          "description": "Payment rail name (UPI, Paytm, PayPal, Crypto (USDT))."
+        },
+        "accountIdentifier": {
+          "type": "string",
+          "description": "Masked/entered payment destination or wallet label."
+        },
+        "coinsSpent": {
+          "type": "integer",
+          "description": "Coins credited (deposit) or redeemed (withdrawal)."
+        },
+        "inrEquivalent": {
+          "type": "number",
+          "description": "Cash equivalent in INR."
+        },
+        "usdEquivalent": {
+          "type": "number",
+          "description": "Cash equivalent in USD."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Submitted", "Credited"],
+          "description": "Transaction processing state."
+        },
+        "txType": {
+          "type": "string",
+          "enum": ["WITHDRAWAL", "DEPOSIT"],
+          "description": "Transaction kind."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp (FieldValue.serverTimestamp()) when transaction was recorded."
+        }
+      },
+      "required": [
+        "userId",
+        "referenceCode",
+        "methodName",
+        "accountIdentifier",
+        "coinsSpent",
+        "inrEquivalent",
+        "usdEquivalent",
+        "status",
+        "txType",
+        "createdAt"
+      ]
+    },
+    "AdminCommissionRecord": {
+      "title": "AdminCommissionRecord",
+      "description": "Immutable 1% platform commission record generated from player winning payouts.",
+      "type": "object",
+      "properties": {
+        "playerUid": {
+          "type": "string",
+          "description": "UID of the player whose winning generated the 1% admin commission."
+        },
+        "playerName": {
+          "type": "string",
+          "description": "Public display name of the winning player."
+        },
+        "sourceGame": {
+          "type": "string",
+          "description": "Game or earning mode name (e.g., Lucky Spin, Ludo, Teen Patti)."
+        },
+        "grossWinCoins": {
+          "type": "integer",
+          "description": "Total winning payout before the 1% admin commission."
+        },
+        "commissionCoins": {
+          "type": "integer",
+          "description": "1% commission coins credited to the app admin."
+        },
+        "netPlayerCoins": {
+          "type": "integer",
+          "description": "Net winning coins received by the player."
+        },
+        "inrValue": {
+          "type": "number",
+          "description": "INR cash equivalent of the admin commission."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp (FieldValue.serverTimestamp()) when the commission was recorded."
+        }
+      },
+      "required": [
+        "playerUid",
+        "playerName",
+        "sourceGame",
+        "grossWinCoins",
+        "commissionCoins",
+        "netPlayerCoins",
+        "inrValue",
+        "createdAt"
+      ]
+    },
+    "AdminTreasurySummary": {
+      "title": "AdminTreasurySummary",
+      "description": "Admin-only treasury state tracking claimed commission coins.",
+      "type": "object",
+      "properties": {
+        "adminEmail": {
+          "type": "string",
+          "description": "Verified admin email."
+        },
+        "claimedCoins": {
+          "type": "integer",
+          "description": "Total 1% commission coins already claimed into the admin wallet."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp (FieldValue.serverTimestamp()) of latest admin claim."
+        }
+      },
+      "required": [
+        "adminEmail",
+        "claimedCoins",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserWalletProfile" },
+      "description": "Owner-scoped SpinMint wallet and gameplay progression document."
+    },
+    "/users/{userId}/transactions/{transactionId}": {
+      "schema": { "$ref": "#/entities/WalletTransactionRecord" },
+      "description": "Append-only ledger of user deposits and withdrawal requests."
+    },
+    "/admin_commissions/{commissionId}": {
+      "schema": { "$ref": "#/entities/AdminCommissionRecord" },
+      "description": "Append-only 1% winning commission ledger readable exclusively by the app admin."
+    },
+    "/admin_treasury/{docId}": {
+      "schema": { "$ref": "#/entities/AdminTreasurySummary" },
+      "description": "Admin-only treasury summary tracking claimed commission coins."
+    }
+  }
+}
