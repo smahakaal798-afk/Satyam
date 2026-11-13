@@ -31,4 +31,5 @@
     <string name="account_logout_desc">Account and Logout</string>
     <string name="sign_in_google">Sign in with Google</string>
     <string name="logout_cta">Logout</string>
+    <string name="app_author_handle">smahakaal798-afk</string>
 </resources>
